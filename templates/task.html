@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Tarefas</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Gerenciamento de Tarefas</h1>
+
+        <!-- Botão de logout -->
+        <div class="text-right mb-4">
+            <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+        </div>
+
+        <!-- Mensagens de feedback -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-info">
+                    {% for message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Se houver projetos -->
+        {% if projects %}
+            <!-- Tabela de projetos -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Projetos</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for project in projects %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ project.project_name }}
+                                {% if project.active %}
+                                    <span class="badge badge-success">Ativo</span>
+                                {% endif %}
+                                <a href="{{ url_for('task', project_id=project.project_id) }}" class="btn btn-info btn-sm">Ver Tarefas</a>
+                                <a href="{{ url_for('delete_project', project_id=project.project_id) }}" class="btn btn-danger btn-sm">Excluir Projeto</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Filtro por status de tarefas -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Filtrar por Status</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{{ url_for('task') }}">
+                    <div class="form-group">
+                        <label for="status_filter">Status</label>
+                        <select id="status_filter" name="status" class="form-control">
+                            <option value="">Todos</option>
+                            <option value="Pendente" {% if request.args.get('status') == 'Pendente' %}selected{% endif %}>Pendente</option>
+                            <option value="Em andamento" {% if request.args.get('status') == 'Em andamento' %}selected{% endif %}>Em andamento</option>
+                            <option value="Concluída" {% if request.args.get('status') == 'Concluída' %}selected{% endif %}>Concluída</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Se houver tarefas -->
+        {% if tasks %}
+            <!-- Tabela de tarefas -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Tarefas</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Descrição</th>
+                                <th>Status</th>
+                                <th>Projeto</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                                <tr>
+                                    <td>{{ task.title }}</td>
+                                    <td>{{ task.description }}</td>
+                                    <td>{{ task.status }}</td>
+                                    <td>{{ task.project.project_name }}</td>
+                                    <td>
+                                        <a href="{{ url_for('close_task', task_id=task.task_id) }}" class="btn btn-success btn-sm">
+                                            {% if task.status == 'Concluída' %}
+                                                Reabrir
+                                            {% else %}
+                                                Concluir
+                                            {% endif %}
+                                        </a>
+                                        <a href="{{ url_for('delete_task', task_id=task.task_id) }}" class="btn btn-danger btn-sm">Excluir</a>
+                                        <!-- Botão de edição -->
+                                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editTaskModal{{ task.task_id }}">
+                                            Editar
+                                        </button>
+                                        <td>{{ task.user.username }}</td>
+
+                                        <!-- Modal de edição -->
+                                        <div class="modal fade" id="editTaskModal{{ task.task_id }}" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="editTaskModalLabel">Editar Tarefa</h5>
+                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <form method="post" action="{{ url_for('edit_task') }}">
+                                                        <div class="modal-body">
+                                                            <input type="hidden" name="task_id" value="{{ task.task_id }}">
+                                                            <div class="form-group">
+                                                                <label for="title">Título</label>
+                                                                <input type="text" class="form-control" name="title" value="{{ task.title }}" required>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="description">Descrição</label>
+                                                                <textarea class="form-control" name="description" rows="3" required>{{ task.description }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                                            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <p>Nenhuma tarefa encontrada.</p>
+        {% endif %}
+
+        <!-- Formulário para adicionar nova tarefa -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Adicionar Nova Tarefa</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('add_task') }}">
+                    <div class="form-group">
+                        <label for="title">Título</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Descrição</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="project">Projeto</label>
+                        <input type="text" class="form-control" id="project" name="project" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="user">Responsável</label>
+                        <select id="user" name="user_id" class="form-control">
+                            {% for user in users %}
+                                <option value="{{ user.id }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status" class="form-control">
+                            <option value="Pendente">Pendente</option>
+                            <option value="Em andamento">Em andamento</option>
+                            <option value="Concluída">Concluída</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="user_id" value="{{ session['user_id'] }}">
+                    <button type="submit" class="btn btn-primary">Adicionar Tarefa</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript necessário para os modais de edição -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>

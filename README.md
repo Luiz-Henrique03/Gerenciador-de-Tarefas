@@ -32,9 +32,13 @@ Renan Laba Bott
 
 
 `git clone https://github.com/Luiz-Henrique03/Gerenciador-de-Tarefas.git`
+
 `python3 -m venv venv`
+
 `source venv/bin/activate`
+
 `python create.py`
+
 `python app.py`
 
 **Execute o create.py, pois é onde será criado o banco de dados**

@@ -44,6 +44,13 @@ Renan Laba Bott
 **Execute o create.py, pois é onde será criado o banco de dados**
 
 
+# Windows
+
+- Execute o app.py
+
+`python app.py`
+
+
 
 
 

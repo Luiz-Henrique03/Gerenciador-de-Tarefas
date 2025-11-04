@@ -4,8 +4,6 @@
 
 Luiz Henrique da Silva de Oliveira
 
-Renan Laba Bott
-
 ## Tela de Login
 
 ![image](https://github.com/user-attachments/assets/8e4fc601-8cef-4ff1-a104-ff92963c6815)

@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block title %}Users{% endblock %} 
+
+{% block body %}
+<h1 class="mb-4">Users</h1>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Registered User List</h5>
+    </div>
+    <div class="card-body">
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if users|length == 0 %}
+        <div class="alert alert-warning mt-3 mb-0">No users found.</div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

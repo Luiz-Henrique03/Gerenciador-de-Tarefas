@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import relationship
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'  # Substitua pela sua chave secreta
+app.config['SECRET_KEY'] = 'your_secret_key'  # Replace with your secret key
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ctm.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
@@ -29,7 +29,7 @@ class Projects(db.Model):
     project_id = db.Column(db.Integer, primary_key=True)
     project_name = db.Column(db.String(20))
     active = db.Column(db.Boolean)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Associando o projeto ao usuário
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  
 
     def __init__(self, project, user_id, active=False):
         self.project_name = project
@@ -45,16 +45,15 @@ class Tasks(db.Model):
     """Tasks schema"""
     task_id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.project_id'))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # Relaciona a tarefa com o usuário logado
-    title = db.Column(db.String(100), nullable=False)  # Novo campo para o título
-    description = db.Column(db.Text)  # Novo campo para a descrição
-    status = db.Column(db.String(20), default='Pendente')  # Status atualizado com "Pendente" como valor padrão
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))  
+    title = db.Column(db.String(100), nullable=False)  
+    description = db.Column(db.Text)  
+    status = db.Column(db.String(20), default='Pending')  
 
-    # Relacionamentos
     project = relationship('Projects', backref='tasks')
     user = relationship('User')
 
-    def __init__(self, project_id, title, description, user_id, status='Pendente'):
+    def __init__(self, project_id, title, description, user_id, status='Pending'):
         self.project_id = project_id
         self.title = title
         self.description = description
@@ -65,9 +64,6 @@ class Tasks(db.Model):
         return '<Task {}>'.format(self.title)
 
 
-
-
-# Inicializa o banco de dados
 with app.app_context():
     db.create_all()
 
@@ -92,14 +88,22 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Página de registro de usuário"""
+    """User registration page"""
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
 
+
+        existing_user = User.query.filter_by(username=username).first()
+
+        if existing_user:
+            error_message = 'O usuário já existe.'
+            return render_template('register.html', error=error_message)
+        
         new_user = User(username, password)
         db.session.add(new_user)
         db.session.commit()
+        
         flash('Registration successful! You can now log in.')
         return redirect(url_for('login'))
 
@@ -116,32 +120,28 @@ def logout():
 @app.route('/task', methods=['GET', 'POST'])
 def task():
     if request.method == 'POST':
-        # Adicionar nova tarefa
         title = request.form['title']
         description = request.form['description']
         status = request.form['status']
         project_name = request.form['project']
         user_id = request.form['user_id']
 
-        # Buscar ou criar projeto
         project = Projects.query.filter_by(project_name=project_name, user_id=session['user_id']).first()
         if not project:
             project = Projects(project_name=project_name, user_id=session['user_id'])
             db.session.add(project)
             db.session.commit()
 
-        # Adicionar tarefa
         task = Tasks(project_id=project.project_id, title=title, description=description, user_id=user_id, status=status)
         db.session.add(task)
         db.session.commit()
-        flash('Tarefa adicionada com sucesso!')
+        flash('Task added successfully!')
         return redirect(url_for('task'))
 
     status_filter = request.args.get('status')
     project_id_filter = request.args.get('project_id')
 
     if project_id_filter:
-        # Buscar tarefas pelo ID do projeto
         tasks = Tasks.query.filter_by(project_id=project_id_filter).all()
     else:
         if status_filter:
@@ -153,10 +153,6 @@ def task():
     users = User.query.all()
 
     return render_template('task.html', tasks=tasks, projects=projects, users=users)
-
-
-
-
 
 
 @app.route('/delete_project/<int:project_id>')
@@ -176,13 +172,12 @@ def delete_project(project_id):
 
 @app.route('/select_project', methods=['POST'])
 def select_project():
-    """Seleciona um projeto ativo"""
+    """Selects an active project"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     project_id = request.form.get('selected_project')
     if project_id:
-        # Atualiza o projeto ativo
         Projects.query.filter_by(user_id=session['user_id']).update({Projects.active: False})
         active_project = Projects.query.get(project_id)
         if active_project:
@@ -192,10 +187,9 @@ def select_project():
     return redirect(url_for('task'))
 
 
-
 @app.route('/add', methods=['POST'])
 def add_task():
-    """Adiciona uma nova tarefa"""
+    """Adds a new task"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -203,56 +197,51 @@ def add_task():
     description = request.form['description']
     project_name = request.form['project']
     status = request.form['status']
-    user_id = request.form['user_id']  # Obtém o ID do usuário do formulário
+    user_id = request.form['user_id'] 
 
     if not title or not description:
-        flash('Título e descrição são obrigatórios!')
+        flash('Title and description are required!')
         return redirect(url_for('task'))
 
     if not project_name:
-        flash('Você deve fornecer um nome de projeto!')
+        flash('You must provide a project name!')
         return redirect(url_for('task'))
 
-    # Verifica se o projeto já existe
     project_obj = Projects.query.filter_by(project_name=project_name).first()
     if not project_obj:
-        # Se o projeto não existir, cria um novo projeto
         project_obj = Projects(project_name, session['user_id'], True)
         db.session.add(project_obj)
         db.session.commit()
 
     project_id = project_obj.project_id
 
-    # Atualiza o status dos projetos ativos
     Projects.query.filter_by(user_id=session['user_id']).update({Projects.active: False})
     project_obj.active = True
     db.session.commit()
 
-    # Cria e adiciona a nova tarefa
     new_task = Tasks(project_id, title, description, user_id, status)
     db.session.add(new_task)
     db.session.commit()
 
-    flash('Tarefa adicionada com sucesso!')
+    flash('Task added successfully!')
     return redirect(url_for('task'))
-
 
 
 @app.route('/close/<int:task_id>')
 def close_task(task_id):
-    """Fecha uma tarefa"""
+    """Closes a task"""
     task = Tasks.query.get(task_id)
 
     if not task:
         return redirect(url_for('task'))
 
-    task.status = 'Concluída' if task.status != 'Concluída' else 'Pendente'
+    task.status = 'Completed' if task.status != 'Completed' else 'Pending'
     db.session.commit()
     return redirect(url_for('task'))
 
 @app.route('/delete/<int:task_id>')
 def delete_task(task_id):
-    """Exclui uma tarefa"""
+    """Deletes a task"""
     task = Tasks.query.get(task_id)
 
     if not task:
@@ -264,7 +253,7 @@ def delete_task(task_id):
 
 @app.route('/clear/<int:project_id>')
 def clear_all(project_id):
-    """Remove todas as tarefas de um projeto e exclui o projeto"""
+    """Removes all tasks from a project and deletes the project"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -275,7 +264,7 @@ def clear_all(project_id):
 
 @app.route('/remove/<int:project_id>')
 def remove_all(project_id):
-    """Remove todas as tarefas de um projeto"""
+    """Removes all tasks from a project"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -285,7 +274,7 @@ def remove_all(project_id):
 
 @app.route('/edit_task', methods=['POST'])
 def edit_task():
-    """Edita a descrição da tarefa"""
+    """Edits the task description"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -294,16 +283,48 @@ def edit_task():
     description = request.form['description']
 
     task = Tasks.query.get(task_id)
-    if not task or task.user_id != session['user_id']:
-        flash('Tarefa não encontrada ou você não tem permissão para editá-la.')
+    if not task:
+        flash('Task not found.')
         return redirect(url_for('task'))
+    
 
     task.title = title
     task.description = description
     db.session.commit()
-    flash('Tarefa atualizada com sucesso!')
+    flash('Task updated successfully!')
     return redirect(url_for('task'))
 
+
+
+@app.route('/view_projects')
+def view_projects():
+    """Lists all projects for the user"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    projects = Projects.query.all()
+    
+    return render_template('view_projects.html', projects=projects)
+
+
+@app.route('/view_tasks')
+def view_tasks():
+    """Lists all tasks for the user"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    tasks = Tasks.query.all()
+
+    return render_template('view_tasks.html', tasks=tasks)
+
+
+@app.route('/view_users')
+def view_users():
+    """Lists all users"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    users = User.query.all()
+    return render_template('view_users.html', users=users)
 
 if __name__ == '__main__':
     app.run(debug=True)
